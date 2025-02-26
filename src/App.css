@@ -1,0 +1,164 @@
+/* 自定义样式 */
+#root {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 动画效果 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 应用动画到结果区域 */
+.result-appear {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+/* 定制滚动条 */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--b2));
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--p));
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--pf));
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .card-body {
+    padding: 1rem;
+  }
+}
+
+/* 品牌相关样式 */
+.brand-gradient {
+  background: linear-gradient(90deg, hsl(var(--p)) 0%, hsl(var(--s)) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* 语法修正样式 */
+.correction-container {
+  line-height: 2;
+  font-size: 1.1rem;
+  word-spacing: 0.1rem;
+}
+
+/* 被删除的文本 */
+.deleted-text {
+  text-decoration: line-through;
+  color: hsl(var(--er));
+  position: relative;
+  margin-right: 0.2rem;
+}
+
+/* 添加的文本 */
+.added-text {
+  color: hsl(var(--su));
+  font-weight: 600;
+  position: relative;
+  margin-left: 0.2rem;
+}
+
+/* 修正说明悬停提示 */
+.correction-tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+.correction-tooltip .tooltip-text {
+  visibility: hidden;
+  width: 200px;
+  background-color: hsl(var(--b3));
+  color: hsl(var(--bc));
+  text-align: center;
+  border-radius: 6px;
+  padding: 8px;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 0.3s;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  font-size: 0.9rem;
+  font-weight: normal;
+  border: 1px solid hsl(var(--b2));
+}
+
+.correction-tooltip:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* 修正指示器 */
+.correction-indicator {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: hsl(var(--in));
+  color: white;
+  font-size: 12px;
+  text-align: center;
+  line-height: 16px;
+  margin-left: 4px;
+  cursor: help;
+  vertical-align: super;
+  font-size: 10px;
+}
+
+/* 修正表格样式 */
+.correction-table th {
+  background-color: hsl(var(--b2));
+  color: hsl(var(--bc));
+  font-weight: 600;
+}
+
+.correction-table tr:nth-child(even) {
+  background-color: hsl(var(--b1));
+}
+
+.correction-table tr:hover {
+  background-color: hsl(var(--b2));
+}
+
+/* 品牌标题样式 */
+.app-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  margin-bottom: 1rem;
+}
+
+/* 加载动画 */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.loading-pulse {
+  animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
