@@ -132,6 +132,7 @@ body {
 .logo {
   display: flex;
   align-items: center;
+  gap: 0.5rem;
 }
 
 .logo-text {
@@ -783,4 +784,47 @@ body {
   cursor: help;
   position: relative;
   z-index: 5;
+}
+
+/* Logo和首页链接样式 */
+.home-link {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  color: inherit;
+  gap: 0.75rem;
+  transition: var(--transition-base);
+}
+
+.home-link:hover {
+  opacity: 0.9;
+}
+
+.logo-image {
+  height: 2.5rem;
+  width: auto;
+}
+
+/* 修改现有的logo-container样式，确保与新添加的元素兼容 */
+.logo-container {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 确保logo样式与新结构兼容 */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* 响应式调整 */
+@media (max-width: 640px) {
+  .logo-image {
+    height: 2rem;
+  }
+  
+  .home-link {
+    gap: 0.5rem;
+  }
 }

@@ -3,6 +3,8 @@ import './App.css'
 import { diffWords } from 'diff'
 // 导入JSON响应数据
 import responseData from './response.json'
+// 导入SVG图标
+import aiiaLogo from './assets/aiia.svg'
 
 interface Correction {
   original: string;
@@ -127,11 +129,13 @@ function App() {
         <div className="container">
           <div className="header-content">
             <div className="logo-container">
-              <div className="logo">
-                <span className="logo-text">JustSay</span>
-                <span className="badge">Beta</span>
-              </div>
-              <div className="subtitle">英文语法优化助手</div>
+              <a href="https://ai-ia.cc" className="home-link">
+                <img src={aiiaLogo} alt="Ai-iA Logo" className="logo-image" />
+                <div className="logo">
+                  <span className="logo-text">JustSay</span>
+                  <span className="badge">Beta</span>
+                </div>
+              </a>
             </div>
             <div className="theme-toggle" onClick={toggleTheme}>
               {theme === 'light' ? (
