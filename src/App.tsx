@@ -1,10 +1,20 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useEffect } from 'react'
+import { ToastContainer, toast } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
+import Confetti from 'react-confetti'
 import './App.css'
 import { diffWords } from 'diff'
 // 导入JSON响应数据
 import responseData from './response.json'
-// 导入SVG图标
-import aiiaLogo from './assets/aiia.svg'
+// 导入组件
+import Header from './components/Header'
+import InputSection from './components/InputSection'
+import ResultSection from './components/ResultSection'
+import CorrectionsTable from './components/CorrectionsTable'
+import LearningSection from './components/LearningSection'
+import Footer from './components/Footer'
+import Tooltip from './components/Tooltip'
+import HistoryPanel from './components/HistoryPanel'
 
 interface Correction {
   original: string;
@@ -38,13 +48,59 @@ interface ApiResponse {
 }
 
 function App() {
-  const [theme, setTheme] = useState('light')
+  const [theme, setTheme] = useState(() => {
+    const savedTheme = localStorage.getItem('justsay-theme')
+    return savedTheme || 'light'
+  })
   const [inputText, setInputText] = useState('')
   const [correctedText, setCorrectedText] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [diffResult, setDiffResult] = useState<DiffPart[]>([])
   const [corrections, setCorrections] = useState<Correction[]>([])
   const [tooltip, setTooltip] = useState({ visible: false, text: '', x: 0, y: 0 })
+  const [showConfetti, setShowConfetti] = useState(false)
+  const [history, setHistory] = useState<{text: string, date: string}[]>(() => {
+    const savedHistory = localStorage.getItem('justsay-history')
+    return savedHistory ? JSON.parse(savedHistory) : []
+  })
+  const [savedRules, setSavedRules] = useState<Correction[]>(() => {
+    const savedRules = localStorage.getItem('justsay-saved-rules')
+    return savedRules ? JSON.parse(savedRules) : []
+  })
+  const [showHistory, setShowHistory] = useState(false)
+  const [showSavedRules, setShowSavedRules] = useState(false)
+
+  // 保存主题设置到本地存储
+  useEffect(() => {
+    localStorage.setItem('justsay-theme', theme)
+    document.body.className = theme
+  }, [theme])
+
+  // 保存历史记录到本地存储
+  useEffect(() => {
+    try {
+      localStorage.setItem('justsay-history', JSON.stringify(history))
+    } catch (error) {
+      console.error('保存历史记录失败:', error)
+      toast.error('保存历史记录失败', {
+        position: "top-right",
+        autoClose: 3000
+      })
+    }
+  }, [history])
+
+  // 保存收藏的规则到本地存储
+  useEffect(() => {
+    try {
+      localStorage.setItem('justsay-saved-rules', JSON.stringify(savedRules))
+    } catch (error) {
+      console.error('保存规则失败:', error)
+      toast.error('保存规则失败', {
+        position: "top-right",
+        autoClose: 3000
+      })
+    }
+  }, [savedRules])
 
   // 模拟API请求获取语法优化结果
   const optimizeGrammar = async (text: string) => {
@@ -65,12 +121,33 @@ function App() {
           
           // 设置修正说明
           setCorrections(response.data.corrections);
+          
+          // 添加到历史记录
+          const now = new Date()
+          setHistory(prev => [{ text, date: now.toLocaleString() }, ...prev.slice(0, 9)])
+          
+          // 显示成功提示和庆祝效果
+          toast.success('语法优化成功！', {
+            position: "top-right",
+            autoClose: 3000
+          })
+          
+          // 触发庆祝效果
+          setShowConfetti(true)
+          setTimeout(() => setShowConfetti(false), 3000)
         } else {
           console.error('API请求失败');
-          // 可以在这里添加错误处理逻辑
+          toast.error('优化失败，请稍后再试', {
+            position: "top-right",
+            autoClose: 3000
+          })
         }
       } catch (error) {
         console.error('处理数据时出错:', error);
+        toast.error('处理数据时出错', {
+          position: "top-right",
+          autoClose: 3000
+        })
       } finally {
         setIsLoading(false);
       }
@@ -94,12 +171,46 @@ function App() {
   const toggleTheme = () => {
     setTheme(theme === 'light' ? 'dark' : 'light')
   }
-
-  // 创建全局提示框元素
-  useEffect(() => {
-    // 这段代码可以删除，我们将使用React状态管理提示框
-    // 但为了不破坏现有代码，可以暂时保留
-  }, []);
+  
+  // 从历史记录中加载文本
+  const loadFromHistory = (text: string) => {
+    setInputText(text)
+    setShowHistory(false)
+    toast.info('已从历史记录加载文本', {
+      position: "top-right",
+      autoClose: 2000
+    })
+  }
+  
+  // 保存语法规则
+  const saveRule = (correction: Correction) => {
+    // 检查是否已经保存过
+    const alreadySaved = savedRules.some(rule => 
+      rule.original === correction.original && rule.corrected === correction.corrected
+    )
+    
+    if (!alreadySaved) {
+      setSavedRules(prev => [correction, ...prev])
+      toast.success('规则已保存', {
+        position: "top-right",
+        autoClose: 2000
+      })
+    } else {
+      toast.info('该规则已保存', {
+        position: "top-right",
+        autoClose: 2000
+      })
+    }
+  }
+  
+  // 删除保存的规则
+  const removeRule = (index: number) => {
+    setSavedRules(prev => prev.filter((_, i) => i !== index))
+    toast.info('规则已删除', {
+      position: "top-right",
+      autoClose: 2000
+    })
+  }
 
   // 修改为使用React状态显示全局提示框
   const showTooltip = (event: React.MouseEvent<HTMLSpanElement>) => {
@@ -112,7 +223,7 @@ function App() {
         visible: true,
         text: explanation,
         x: rect.left + rect.width / 2,
-        y: rect.bottom + 10
+        y: rect.top - 10 // 向上偏移一点，确保tooltip显示在单词上方
       });
     }
   };
@@ -124,33 +235,23 @@ function App() {
 
   return (
     <div className={`app-container ${theme}`}>
+      {/* 显示庆祝效果 */}
+      {showConfetti && (
+        <Confetti
+          width={window.innerWidth}
+          height={window.innerHeight}
+          recycle={false}
+          numberOfPieces={200}
+        />
+      )}
+      
       {/* 头部导航区 */}
-      <header className="app-header">
-        <div className="container">
-          <div className="header-content">
-            <div className="logo-container">
-              <a href="https://ai-ia.cc" className="home-link">
-                <img src={aiiaLogo} alt="Ai-iA Logo" className="logo-image" />
-                <div className="logo">
-                  <span className="logo-text">JustSay</span>
-                  <span className="badge">Beta</span>
-                </div>
-              </a>
-            </div>
-            <div className="theme-toggle" onClick={toggleTheme}>
-              {theme === 'light' ? (
-                <svg className="moon-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              ) : (
-                <svg className="sun-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
+      <Header 
+        theme={theme} 
+        toggleTheme={toggleTheme} 
+        setShowHistory={setShowHistory}
+        setShowSavedRules={setShowSavedRules}
+      />
 
       <main className="main-content">
         <div className="container">
@@ -165,223 +266,55 @@ function App() {
             </p>
           </div>
           
-          <div className="input-section">
-            <div className="card input-card">
-              <div className="card-header">
-                <h2 className="card-title">
-                  <svg className="section-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  输入您想要优化的英文句子
-                </h2>
-              </div>
-              <div className="card-body">
-                <div className="input-wrapper">
-                  <textarea 
-                    className="text-input" 
-                    placeholder="例如: I go to school yesterday. She have a cat. They is happy..."
-                    value={inputText}
-                    onChange={(e) => setInputText(e.target.value)}
-                  ></textarea>
-                  <div className="input-footer">
-                    <button 
-                      className="sample-btn"
-                      onClick={useExampleText}
-                    >
-                      <svg className="sample-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M15.75 17.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25m-.386 6.364l-1.591 1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                      使用示例文本
-                    </button>
-                    <button 
-                      className={`optimize-btn ${isLoading ? 'loading' : ''}`}
-                      onClick={handleOptimize}
-                      disabled={isLoading || !inputText.trim()}
-                    >
-                      {isLoading ? (
-                        <>
-                          <div className="spinner"></div>
-                          优化中...
-                        </>
-                      ) : (
-                        <>
-                          <svg className="optimize-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
-                          优化语法
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <InputSection 
+            inputText={inputText}
+            setInputText={setInputText}
+            isLoading={isLoading}
+            handleOptimize={handleOptimize}
+            useExampleText={useExampleText}
+          />
           
-          {diffResult.length > 0 && (
-            <div className="result-section animate-fade-in">
-              <div className="card result-card">
-                <div className="card-header">
-                  <h2 className="card-title">
-                    <svg className="section-icon success-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M4.5 12.75l6 6 9-13.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    优化结果
-                  </h2>
-                </div>
-                <div className="card-body">
-                  <div className="result-text">
-                    {diffResult.map((part, index) => {
-                      if (part.removed) {
-                        return (
-                          <span 
-                            key={index} 
-                            className="text-error"
-                            data-explanation={part.explanation || ''}
-                            onMouseEnter={showTooltip}
-                            onMouseLeave={hideTooltip}
-                          >
-                            {part.value}
-                            {part.explanation && <span className="error-indicator">?</span>}
-                          </span>
-                        );
-                      } else if (part.added) {
-                        return (
-                          <span 
-                            key={index} 
-                            className="text-success"
-                            data-explanation={part.explanation || ''}
-                            onMouseEnter={showTooltip}
-                            onMouseLeave={hideTooltip}
-                          >
-                            {part.value}
-                            {part.explanation && <span className="success-indicator">✓</span>}
-                          </span>
-                        );
-                      } else {
-                        return <span key={index}>{part.value}</span>;
-                      }
-                    })}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {corrections.length > 0 && (
-            <div className="corrections-section animate-fade-in">
-              <div className="card corrections-card">
-                <div className="card-header">
-                  <h2 className="card-title">
-                    <svg className="section-icon info-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    详细修正说明
-                  </h2>
-                </div>
-                <div className="card-body">
-                  <div className="table-container">
-                    <table className="corrections-table">
-                      <thead>
-                        <tr>
-                          <th>原文</th>
-                          <th>修正</th>
-                          <th>解释</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {corrections.map((correction, index) => (
-                          <tr key={index}>
-                            <td className="original-text">{correction.original}</td>
-                            <td className="corrected-text">{correction.corrected}</td>
-                            <td className="explanation-text">{correction.explanation}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {corrections.length > 0 && (
-            <div className="learning-section animate-fade-in">
-              <div className="card learning-card">
-                <div className="card-header">
-                  <h2 className="card-title">
-                    <svg className="section-icon warning-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M4.26 10.147a60.436 60.436 0 008.716-6.747M12 21a9.004 9.004 0 008.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    语法规则学习
-                  </h2>
-                </div>
-                <div className="card-body">
-                  <div className="learning-grid">
-                    {corrections.filter(c => c.rule).map((correction, index) => (
-                      <div key={index} className="rule-card">
-                        <div className="rule-header">
-                          <div className="rule-change">
-                            <span className="original">{correction.original}</span>
-                            <svg className="arrow-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                            <span className="corrected">{correction.corrected}</span>
-                          </div>
-                        </div>
-                        <p className="rule-explanation">{correction.explanation}</p>
-                        {correction.rule && (
-                          <div className="rule-box">
-                            <p className="rule-title">📝 语法规则:</p>
-                            <p className="rule-content">{correction.rule}</p>
-                          </div>
-                        )}
-                        {correction.examples && correction.examples.length > 0 && (
-                          <div className="examples-container">
-                            <p className="examples-title">✨ 例句:</p>
-                            <ul className="examples-list">
-                              {correction.examples.map((example, i) => (
-                                <li key={i} className="example-item">{example}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
+          {/* 显示结果区域 */}
+          {correctedText && (
+            <>
+              <ResultSection 
+                diffResult={diffResult}
+                showTooltip={showTooltip}
+                hideTooltip={hideTooltip}
+              />
+              
+              <CorrectionsTable corrections={corrections} />
+              
+              <LearningSection corrections={corrections} />
+            </>
           )}
         </div>
       </main>
-
-      <footer className="app-footer">
-        <div className="container">
-          <div className="footer-content">
-            <div className="footer-logo">
-              <svg className="globe-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              <span>2025 JustSay - 英文语法优化助手</span>
-            </div>
-          </div>
-        </div>
-      </footer>
       
-      {/* 添加动态的提示框 */}
-      {tooltip.visible && (
-        <div 
-          className="custom-tooltip"
-          style={{ 
-            left: `${tooltip.x}px`, 
-            top: `${tooltip.y}px`
-          }}
-        >
-          {tooltip.text}
-          <div className="tooltip-arrow"></div>
-        </div>
-      )}
+      <Footer />
+      
+      {/* 历史记录和保存规则面板 */}
+      <HistoryPanel
+        showHistory={showHistory}
+        setShowHistory={setShowHistory}
+        showSavedRules={showSavedRules}
+        setShowSavedRules={setShowSavedRules}
+        history={history}
+        savedRules={savedRules}
+        loadFromHistory={loadFromHistory}
+        removeRule={removeRule}
+      />
+      
+      {/* 全局提示框 */}
+      <Tooltip 
+        visible={tooltip.visible}
+        text={tooltip.text}
+        x={tooltip.x}
+        y={tooltip.y}
+      />
+      
+      {/* 通知提示 */}
+      <ToastContainer />
     </div>
   )
 }
