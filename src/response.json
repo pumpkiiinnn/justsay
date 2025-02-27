@@ -1,0 +1,125 @@
+{
+    "success": true,
+    "data": {
+      "original_text": "I go to school yesterday. She have a cat. They is happy. I am good in English. He don't like coffee. I have been there since 3 years. She is more taller than me. I did a mistake. I am agree with you. I look forward to see you",
+      "corrected_text": "I went to school yesterday. She has a cat. They are happy. I am good at English. He does not like coffee. I have been there for 3 years. She is taller than me. I made a mistake. I agree with you. I look forward to seeing you",
+      "diff": [
+        {"value": "I ", "added": false, "removed": false},
+        {"value": "go", "added": false, "removed": true, "explanation": "过去式动词错误"},
+        {"value": "went", "added": true, "removed": false, "explanation": "修正为正确过去式"},
+        {"value": " to school yesterday.", "added": false, "removed": false},
+        {"value": " She ", "added": false, "removed": false},
+        {"value": "have", "added": false, "removed": true, "explanation": "主谓一致错误"},
+        {"value": "has", "added": true, "removed": false, "explanation": "修正为主谓一致"},
+        {"value": " a cat.", "added": false, "removed": false},
+        {"value": " They ", "added": false, "removed": false},
+        {"value": "is", "added": false, "removed": true, "explanation": "主谓一致错误"},
+        {"value": "are", "added": true, "removed": false, "explanation": "修正为主谓一致"},
+        {"value": " happy.", "added": false, "removed": false},
+        {"value": " I am good ", "added": false, "removed": false},
+        {"value": "in", "added": false, "removed": true, "explanation": "介词使用错误"},
+        {"value": "at", "added": true, "removed": false, "explanation": "修正为正确介词"},
+        {"value": " English.", "added": false, "removed": false},
+        {"value": " He ", "added": false, "removed": false},
+        {"value": "don't", "added": false, "removed": true, "explanation": "主谓一致错误"},
+        {"value": "does not", "added": true, "removed": false, "explanation": "修正为主谓一致"},
+        {"value": " like coffee.", "added": false, "removed": false},
+        {"value": " I have been there ", "added": false, "removed": false},
+        {"value": "since", "added": false, "removed": true, "explanation": "时间表达错误"},
+        {"value": "for", "added": true, "removed": false, "explanation": "修正为正确时间表达"},
+        {"value": " 3 years.", "added": false, "removed": false},
+        {"value": " She is ", "added": false, "removed": false},
+        {"value": "more taller", "added": false, "removed": true, "explanation": "比较级形式错误"},
+        {"value": "taller", "added": true, "removed": false, "explanation": "修正为正确比较级"},
+        {"value": " than me.", "added": false, "removed": false},
+        {"value": " I ", "added": false, "removed": false},
+        {"value": "did a mistake", "added": false, "removed": true, "explanation": "动词搭配错误"},
+        {"value": "made a mistake", "added": true, "removed": false, "explanation": "修正为正确动词搭配"},
+        {"value": ". I ", "added": false, "removed": false},
+        {"value": "am agree", "added": false, "removed": true, "explanation": "动词形式错误"},
+        {"value": "agree", "added": true, "removed": false, "explanation": "修正为正确动词形式"},
+        {"value": " with you.", "added": false, "removed": false},
+        {"value": " I look forward to ", "added": false, "removed": false},
+        {"value": "see", "added": false, "removed": true, "explanation": "动名词使用错误"},
+        {"value": "seeing", "added": true, "removed": false, "explanation": "修正为正确动名词形式"},
+        {"value": " you", "added": false, "removed": false}
+      ],
+      "corrections": [
+        {
+          "original": "go",
+          "corrected": "went",
+          "explanation": "原句中 'go' 是现在时，而句子描述的是昨天发生的事情，应使用过去式 'went'。",
+          "rule": "动词过去式的规则变化",
+          "examples": ["He played football yesterday.", "She cooked dinner last night."]
+        },
+        {
+          "original": "have",
+          "corrected": "has",
+          "explanation": "原句中主语 'She' 是第三人称单数，动词应使用 'has' 形式以保持主谓一致。",
+          "rule": "主谓一致规则",
+          "examples": ["He has a book.", "She speaks English."]
+        },
+        {
+          "original": "is",
+          "corrected": "are",
+          "explanation": "原句中主语 'They' 是复数，动词应使用 'are' 形式以保持主谓一致。",
+          "rule": "主谓一致规则",
+          "examples": ["We are students.", "They are teachers."]
+        },
+        {
+          "original": "in",
+          "corrected": "at",
+          "explanation": "'be good at' 是固定搭配，表示擅长某事，而不是 'be good in'。",
+          "rule": "固定搭配规则",
+          "examples": ["She is good at math.", "He is good at swimming."]
+        },
+        {
+          "original": "don't",
+          "corrected": "does not",
+          "explanation": "原句中主语 'He' 是第三人称单数，助动词应使用 'does not' 而不是 'don't'。",
+          "rule": "主谓一致规则",
+          "examples": ["He does not like apples.", "She does not play tennis."]
+        },
+        {
+          "original": "since",
+          "corrected": "for",
+          "explanation": "'since' 后接具体时间点，而 'for' 后接时间段。此处 '3 years' 是时间段，应使用 'for'。",
+          "rule": "时间表达规则",
+          "examples": ["I have lived here for 5 years.", "She has studied English since 2018."]
+        },
+        {
+          "original": "more taller",
+          "corrected": "taller",
+          "explanation": "形容词的比较级直接用 '-er' 表示，不需要加 'more'。",
+          "rule": "形容词比较级规则",
+          "examples": ["She is taller than me.", "This book is better than that one."]
+        },
+        {
+          "original": "did a mistake",
+          "corrected": "made a mistake",
+          "explanation": "表示 '犯错' 的正确动词是 'make' 而不是 'do'。",
+          "rule": "动词搭配规则",
+          "examples": ["He made a mistake in his homework.", "She made an error in the report."]
+        },
+        {
+          "original": "am agree",
+          "corrected": "agree",
+          "explanation": "'agree' 是不及物动词，不需要加 'am'。",
+          "rule": "动词形式规则",
+          "examples": ["I agree with you.", "We all agree on this decision."]
+        },
+        {
+          "original": "see",
+          "corrected": "seeing",
+          "explanation": "'look forward to' 后必须接动名词形式，而不是动词原形。",
+          "rule": "动名词使用规则",
+          "examples": ["I look forward to meeting you.", "She looks forward to finishing her project."]
+        }
+      ],
+      "metadata": {
+        "correction_count": 10,
+        "confidence_score": 1.0,
+        "processing_time_ms": 350
+      }
+    }
+  }
