@@ -11,33 +11,55 @@
   width: auto;
   font-size: 0.875rem;
   line-height: 1.5;
-  pointer-events: none;
+  pointer-events: none; /* 修改为none，防止tooltip本身触发鼠标事件 */
   border: 1px solid var(--color-border, #e2e8f0);
   text-align: center;
-  transform: translateX(-50%) translateY(-100%);
-  margin-top: -8px;
+  transform: translateX(-50%);
+  margin-top: -30px; /* 增加上边距，确保tooltip不会覆盖到鼠标 */
+  left: var(--tooltip-x) !important; /* 使用CSS变量固定位置 */
+  top: var(--tooltip-y) !important; /* 使用CSS变量固定位置 */
+  opacity: 1;
+  will-change: opacity;
+  user-select: none; /* 防止文本选择 */
 }
 
-.tooltip-arrow {
+/* 确保不再使用这些影响位置的动画 */
+.custom-tooltip.animate {
+  animation: none;
+}
+
+/* 简化一下动画，只做淡入效果，不改变位置 */
+@keyframes tooltip-appear {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* 添加tooltip内容容器 */
+.tooltip-content {
+  position: relative;
+  z-index: 10;
+}
+
+/* 添加小三角形指示器 */
+.tooltip-content::after {
+  content: '';
   position: absolute;
-  bottom: -6px;
+  bottom: -18px; /* 位置调整 */
   left: 50%;
-  transform: translateX(-50%) rotate(45deg);
-  width: 10px;
-  height: 10px;
-  background-color: var(--color-bg-card, #ffffff);
-  border-right: 1px solid var(--color-border, #e2e8f0);
-  border-bottom: 1px solid var(--color-border, #e2e8f0);
+  transform: translateX(-50%);
+  border-width: 8px;
+  border-style: solid;
+  border-color: var(--color-bg-card, #ffffff) transparent transparent transparent;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.1));
 }
 
-/* 确保暗色主题下也有正确的样式 */
+/* 深色模式样式 */
 .dark .custom-tooltip {
   background-color: var(--color-bg-card, #1e293b);
-  color: var(--color-text-base, #e2e8f0);
   border-color: var(--color-border, #334155);
+  color: var(--color-text-base, #e2e8f0);
 }
 
-.dark .tooltip-arrow {
-  background-color: var(--color-bg-card, #1e293b);
-  border-color: var(--color-border, #334155);
+.dark .tooltip-content::after {
+  border-color: var(--color-bg-card, #1e293b) transparent transparent transparent;
 }

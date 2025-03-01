@@ -1,6 +1,6 @@
-import { FC } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiClock, FiX, FiArrowLeft, FiBookmark } from 'react-icons/fi';
+import { FiClock, FiX, FiArrowLeft, FiBookmark, FiTrash2 } from 'react-icons/fi';
 
 interface Correction {
   original: string;
@@ -11,180 +11,118 @@ interface Correction {
 }
 
 interface HistoryPanelProps {
-  showHistory: boolean;
-  setShowHistory: (show: boolean) => void;
-  showSavedRules: boolean;
-  setShowSavedRules: (show: boolean) => void;
   history: { text: string; date: string }[];
-  savedRules: Correction[];
   loadFromHistory: (text: string) => void;
-  removeRule: (index: number) => void;
+  clearHistory: () => void;
+  onClose: () => void;
 }
 
-const HistoryPanel: FC<HistoryPanelProps> = ({
-  showHistory,
-  setShowHistory,
-  showSavedRules,
-  setShowSavedRules,
-  history,
-  savedRules,
-  loadFromHistory,
-  removeRule
-}) => {
+const HistoryPanel = ({ history, loadFromHistory, clearHistory, onClose }: HistoryPanelProps) => {
   // 动画变体
   const panelVariants = {
     hidden: { opacity: 0, x: '100%' },
-    visible: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: '100%' }
+    visible: { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 300, damping: 30 } },
+    exit: { opacity: 0, x: '100%', transition: { duration: 0.2 } }
   };
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 }
+    visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 30 } }
   };
 
   return (
-    <AnimatePresence>
-      {(showHistory || showSavedRules) && (
-        <motion.div
-          className="history-panel-overlay"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={() => {
-            setShowHistory(false);
-            setShowSavedRules(false);
-          }}
-        >
+    <motion.div
+      className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm flex justify-end"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+    >
+      <motion.div
+        className="w-full max-w-md h-full bg-base-100 shadow-xl overflow-hidden flex flex-col"
+        variants={panelVariants}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center p-4 border-b border-base-300">
+          <h2 className="text-xl font-bold flex items-center gap-2">
+            <FiClock className="text-primary" />
+            历史记录
+          </h2>
+          <div className="flex gap-2">
+            {history.length > 0 && (
+              <motion.button
+                className="btn btn-sm btn-ghost text-error"
+                onClick={clearHistory}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <FiTrash2 size={16} />
+                <span className="ml-1">清空</span>
+              </motion.button>
+            )}
+            <motion.button
+              className="btn btn-sm btn-circle btn-ghost"
+              onClick={onClose}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              <FiX size={20} />
+            </motion.button>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4">
           <motion.div
-            className="history-panel"
-            variants={panelVariants}
             initial="hidden"
             animate="visible"
-            exit="exit"
-            onClick={(e) => e.stopPropagation()}
+            variants={{
+              visible: {
+                transition: {
+                  staggerChildren: 0.05
+                }
+              }
+            }}
+            className="space-y-3"
           >
-            <div className="panel-header">
-              <h2 className="panel-title">
-                {showHistory && (
-                  <>
-                    <FiClock className="panel-icon" />
-                    历史记录
-                  </>
-                )}
-                {showSavedRules && (
-                  <>
-                    <FiBookmark className="panel-icon" />
-                    已保存的规则
-                  </>
-                )}
-              </h2>
-              <div className="panel-actions">
-                <motion.button
-                  className="panel-close-btn"
-                  onClick={() => {
-                    setShowHistory(false);
-                    setShowSavedRules(false);
-                  }}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
+            {history.length > 0 ? (
+              history.map((item, index) => (
+                <motion.div
+                  key={index}
+                  className="bg-base-200/50 rounded-lg border border-base-300 overflow-hidden"
+                  variants={itemVariants}
+                  whileHover={{ y: -2, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)' }}
                 >
-                  <FiX />
-                </motion.button>
+                  <div className="p-3">
+                    <p className="text-sm text-base-content-light mb-1">{item.date}</p>
+                    <p className="text-base font-medium text-base-content line-clamp-2">
+                      {item.text}
+                    </p>
+                  </div>
+                  <div className="bg-base-300/30 p-2 flex justify-end">
+                    <motion.button
+                      className="btn btn-sm btn-primary btn-outline"
+                      onClick={() => loadFromHistory(item.text)}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <FiArrowLeft className="mr-1" /> 加载此文本
+                    </motion.button>
+                  </div>
+                </motion.div>
+              ))
+            ) : (
+              <div className="text-center py-10">
+                <p className="text-lg text-base-content-light">暂无历史记录</p>
+                <p className="text-sm text-base-content-light mt-2">您的优化历史将显示在这里</p>
               </div>
-            </div>
-
-            <div className="panel-content">
-              {showHistory && (
-                <motion.div
-                  className="history-list"
-                  initial="hidden"
-                  animate="visible"
-                  variants={{
-                    visible: {
-                      transition: {
-                        staggerChildren: 0.05
-                      }
-                    }
-                  }}
-                >
-                  {history.length > 0 ? (
-                    history.map((item, index) => (
-                      <motion.div
-                        key={index}
-                        className="history-item"
-                        variants={itemVariants}
-                        whileHover={{ backgroundColor: 'var(--color-bg-base)' }}
-                        onClick={() => loadFromHistory(item.text)}
-                      >
-                        <div className="history-item-content">
-                          <p className="history-text">{item.text.length > 50 ? `${item.text.substring(0, 50)}...` : item.text}</p>
-                          <p className="history-date">{item.date}</p>
-                        </div>
-                        <motion.button
-                          className="history-load-btn"
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                        >
-                          <FiArrowLeft /> 加载
-                        </motion.button>
-                      </motion.div>
-                    ))
-                  ) : (
-                    <p className="empty-message">暂无历史记录</p>
-                  )}
-                </motion.div>
-              )}
-
-              {showSavedRules && (
-                <motion.div
-                  className="saved-rules-list"
-                  initial="hidden"
-                  animate="visible"
-                  variants={{
-                    visible: {
-                      transition: {
-                        staggerChildren: 0.05
-                      }
-                    }
-                  }}
-                >
-                  {savedRules.length > 0 ? (
-                    savedRules.map((rule, index) => (
-                      <motion.div
-                        key={index}
-                        className="saved-rule-item"
-                        variants={itemVariants}
-                      >
-                        <div className="rule-content">
-                          <div className="rule-change">
-                            <span className="original">{rule.original}</span>
-                            <span className="arrow">→</span>
-                            <span className="corrected">{rule.corrected}</span>
-                          </div>
-                          <p className="rule-explanation">{rule.explanation}</p>
-                          {rule.rule && <p className="rule-grammar">📝 {rule.rule}</p>}
-                        </div>
-                        <motion.button
-                          className="rule-delete-btn"
-                          onClick={() => removeRule(index)}
-                          whileHover={{ scale: 1.1, color: 'var(--color-error)' }}
-                          whileTap={{ scale: 0.9 }}
-                        >
-                          <FiX />
-                        </motion.button>
-                      </motion.div>
-                    ))
-                  ) : (
-                    <p className="empty-message">暂无保存的规则</p>
-                  )}
-                </motion.div>
-              )}
-            </div>
+            )}
           </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 };
 

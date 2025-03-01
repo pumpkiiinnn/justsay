@@ -1,6 +1,6 @@
-import { FC } from 'react';
-import { motion } from 'framer-motion';
-import { FiGlobe } from 'react-icons/fi';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FiBook, FiBookmark, FiChevronDown, FiChevronUp, FiTrash2 } from 'react-icons/fi';
 
 interface Correction {
   original: string;
@@ -11,118 +11,171 @@ interface Correction {
 }
 
 interface LearningSectionProps {
-  corrections: Correction[];
+  savedRules: Correction[];
+  removeRule: (correction: Correction) => void;
+  showSavedRules: boolean;
 }
 
-const LearningSection: FC<LearningSectionProps> = ({ corrections }) => {
+const LearningSection = ({ savedRules, removeRule, showSavedRules }: LearningSectionProps) => {
+  const [expandedItems, setExpandedItems] = useState<number[]>([]);
+  
+  const toggleExpand = (index: number) => {
+    setExpandedItems(prev => 
+      prev.includes(index) ? prev.filter(item => item !== index) : [...prev, index]
+    );
+  };
+  
   const containerVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { 
       opacity: 1, 
       y: 0,
       transition: { 
-        duration: 0.5,
-        when: "beforeChildren",
+        type: 'spring',
+        stiffness: 100,
+        damping: 15,
+        delay: 0.3, 
         staggerChildren: 0.1
       }
     }
   };
 
-  const cardVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 }
+  const itemVariants = {
+    hidden: { opacity: 0, y: 10 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: {
+        type: 'spring',
+        stiffness: 100,
+        damping: 15
+      }
+    }
   };
+  
+  const buttonVariants = {
+    hover: { 
+      scale: 1.05,
+      transition: {
+        type: 'spring',
+        stiffness: 400,
+        damping: 10
+      }
+    },
+    tap: { scale: 0.95 }
+  };
+  
+  if (!savedRules || savedRules.length === 0) {
+    return null;
+  }
 
   return (
     <motion.div 
-      className="learning-section"
+      className="learning-section mt-8"
       variants={containerVariants}
       initial="hidden"
-      animate="visible"
+      animate={showSavedRules ? "visible" : "hidden"}
     >
       <motion.div 
-        className="card learning-card"
-        whileHover={{ boxShadow: 'var(--shadow-lg)' }}
-        transition={{ duration: 0.3 }}
+        className="bg-base-100/90 backdrop-blur-md rounded-3xl shadow-lg p-6 md:p-8 border border-base-300/50"
+        variants={containerVariants}
       >
-        <div className="card-header">
-          <h2 className="card-title">
-            <FiGlobe className="section-icon warning-icon" />
-            语法规则学习
+        <motion.div 
+          variants={itemVariants}
+          className="flex justify-between items-center mb-6"
+        >
+          <h2 className="text-2xl font-bold flex items-center gap-2 text-base-content">
+            <FiBook className="text-secondary" />
+            我的收藏规则
           </h2>
-        </div>
-        <div className="card-body">
-          <div className="learning-grid">
-            {corrections.filter(c => c.rule).map((correction, index) => (
-              <motion.div 
-                key={index} 
-                className="rule-card"
-                variants={cardVariants}
-                whileHover={{ 
-                  y: -5, 
-                  boxShadow: 'var(--shadow-md)',
-                  backgroundColor: 'var(--color-bg-card)'
-                }}
-                transition={{ type: 'spring', stiffness: 300 }}
+          <div className="badge badge-secondary badge-lg">{savedRules.length} 条规则</div>
+        </motion.div>
+        
+        <motion.div 
+          className="space-y-4"
+          variants={containerVariants}
+        >
+          {savedRules.map((rule, index) => (
+            <motion.div 
+              key={index}
+              variants={itemVariants}
+              className="rounded-xl overflow-hidden border border-base-300 shadow-sm"
+            >
+              <div 
+                className="p-4 bg-secondary/5 cursor-pointer flex justify-between items-center"
+                onClick={() => toggleExpand(index)}
               >
-                <div className="rule-header">
-                  <motion.div 
-                    className="rule-change"
-                    initial={{ scale: 0.95 }}
-                    animate={{ scale: 1 }}
-                    transition={{ duration: 0.5 }}
-                  >
-                    <span className="original">{correction.original}</span>
-                    <motion.svg 
-                      className="arrow-icon" 
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      xmlns="http://www.w3.org/2000/svg"
-                      animate={{ x: [0, 5, 0] }}
-                      transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2 }}
-                    >
-                      <path d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </motion.svg>
-                    <span className="corrected">{correction.corrected}</span>
-                  </motion.div>
+                <div className="flex-1">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <div className="flex items-center">
+                      <span className="text-error mr-2">×</span>
+                      <span className="font-medium text-error line-through">{rule.original}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <span className="text-success mr-2">✓</span>
+                      <span className="font-medium text-success">{rule.corrected}</span>
+                    </div>
+                  </div>
                 </div>
-                <p className="rule-explanation">{correction.explanation}</p>
-                {correction.rule && (
-                  <motion.div 
-                    className="rule-box"
-                    initial={{ opacity: 0.8 }}
-                    whileHover={{ opacity: 1, backgroundColor: 'var(--color-bg-base)' }}
+                <div className="flex gap-2 items-center">
+                  <motion.button
+                    variants={buttonVariants}
+                    whileHover="hover"
+                    whileTap="tap"
+                    className="btn btn-sm btn-ghost text-error"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeRule(rule);
+                    }}
                   >
-                    <p className="rule-title">📝 语法规则:</p>
-                    <p className="rule-content">{correction.rule}</p>
+                    <FiTrash2 />
+                  </motion.button>
+                  {expandedItems.includes(index) ? 
+                    <FiChevronUp /> : <FiChevronDown />}
+                </div>
+              </div>
+              
+              <AnimatePresence>
+                {expandedItems.includes(index) && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="p-4 border-t border-base-300 bg-base-100">
+                      <div className="mb-4">
+                        <h4 className="text-sm font-semibold uppercase tracking-wider text-base-content-light mb-2">解释</h4>
+                        <p className="text-base-content">{rule.explanation}</p>
+                      </div>
+                      
+                      {rule.rule && (
+                        <div className="mb-4">
+                          <h4 className="text-sm font-semibold uppercase tracking-wider text-base-content-light mb-2">规则</h4>
+                          <div className="p-3 bg-base-200/50 rounded-lg text-sm">
+                            {rule.rule}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {rule.examples && rule.examples.length > 0 && (
+                        <div>
+                          <h4 className="text-sm font-semibold uppercase tracking-wider text-base-content-light mb-2">示例</h4>
+                          <ul className="list-disc list-inside space-y-1 text-sm">
+                            {rule.examples.map((example, i) => (
+                              <li key={i} className="text-base-content">{example}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
                   </motion.div>
                 )}
-                {correction.examples && correction.examples.length > 0 && (
-                  <motion.div 
-                    className="examples-container"
-                    initial={{ opacity: 0.8 }}
-                    whileHover={{ opacity: 1 }}
-                  >
-                    <p className="examples-title">✨ 例句:</p>
-                    <ul className="examples-list">
-                      {correction.examples.map((example, i) => (
-                        <motion.li 
-                          key={i} 
-                          className="example-item"
-                          initial={{ x: -5, opacity: 0 }}
-                          animate={{ x: 0, opacity: 1 }}
-                          transition={{ delay: 0.2 + i * 0.1 }}
-                        >
-                          {example}
-                        </motion.li>
-                      ))}
-                    </ul>
-                  </motion.div>
-                )}
-              </motion.div>
-            ))}
-          </div>
-        </div>
+              </AnimatePresence>
+            </motion.div>
+          ))}
+        </motion.div>
       </motion.div>
     </motion.div>
   );

@@ -1,20 +1,25 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense, useRef } from 'react'
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import Confetti from 'react-confetti'
+import { motion, AnimatePresence } from 'framer-motion'
 import './App.css'
 import { diffWords } from 'diff'
 // 导入JSON响应数据
 import responseData from './response.json'
 // 导入组件
 import Header from './components/Header'
-import InputSection from './components/InputSection'
+import HeroSection from './components/HeroSection'
+import EnhancedInputSection from './components/EnhancedInputSection'
 import ResultSection from './components/ResultSection'
 import CorrectionsTable from './components/CorrectionsTable'
 import LearningSection from './components/LearningSection'
 import Footer from './components/Footer'
 import Tooltip from './components/Tooltip'
 import HistoryPanel from './components/HistoryPanel'
+
+// 懒加载较大的组件
+const LazyLearningSection = lazy(() => import('./components/LearningSection'));
 
 interface Correction {
   original: string;
@@ -47,6 +52,13 @@ interface ApiResponse {
   }
 }
 
+// 加载中状态组件
+const LoadingFallback = () => (
+  <div className="flex justify-center items-center p-8">
+    <div className="w-8 h-8 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
+  </div>
+);
+
 function App() {
   const [theme, setTheme] = useState(() => {
     const savedTheme = localStorage.getItem('justsay-theme')
@@ -57,7 +69,11 @@ function App() {
   const [isLoading, setIsLoading] = useState(false)
   const [diffResult, setDiffResult] = useState<DiffPart[]>([])
   const [corrections, setCorrections] = useState<Correction[]>([])
-  const [tooltip, setTooltip] = useState({ visible: false, text: '', x: 0, y: 0 })
+  const [tooltipVisible, setTooltipVisible] = useState(false);
+  const [tooltipText, setTooltipText] = useState('');
+  const [tooltipX, setTooltipX] = useState(0);
+  const [tooltipY, setTooltipY] = useState(0);
+  const tooltipTimeoutRef = useRef(null);
   const [showConfetti, setShowConfetti] = useState(false)
   const [history, setHistory] = useState<{text: string, date: string}[]>(() => {
     const savedHistory = localStorage.getItem('justsay-history')
@@ -69,6 +85,7 @@ function App() {
   })
   const [showHistory, setShowHistory] = useState(false)
   const [showSavedRules, setShowSavedRules] = useState(false)
+  const [showHeroSection, setShowHeroSection] = useState(true)
 
   // 保存主题设置到本地存储
   useEffect(() => {
@@ -165,7 +182,24 @@ function App() {
   const handleOptimize = () => {
     if (inputText.trim()) {
       optimizeGrammar(inputText)
+      // 隐藏Hero部分
+      setShowHeroSection(false)
+      // 滚动到输入区域
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      })
     }
+  }
+
+  // 开始体验 - 从Hero部分跳转到输入区
+  const handleGetStarted = () => {
+    setShowHeroSection(false)
+    // 滚动到输入区域
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    })
   }
 
   const toggleTheme = () => {
@@ -203,117 +237,177 @@ function App() {
     }
   }
   
-  // 删除保存的规则
-  const removeRule = (index: number) => {
-    setSavedRules(prev => prev.filter((_, i) => i !== index))
-    toast.info('规则已删除', {
+  // 移除保存的规则
+  const removeRule = (correction: Correction) => {
+    setSavedRules(prev => 
+      prev.filter(rule => 
+        !(rule.original === correction.original && rule.corrected === correction.corrected)
+      )
+    )
+    toast.info('规则已移除', {
       position: "top-right",
       autoClose: 2000
     })
   }
-
-  // 修改为使用React状态显示全局提示框
-  const showTooltip = (event: React.MouseEvent<HTMLSpanElement>) => {
-    const element = event.currentTarget;
-    const explanation = element.getAttribute('data-explanation');
-    
-    if (explanation && explanation.trim() !== '') {
-      const rect = element.getBoundingClientRect();
-      setTooltip({
-        visible: true,
-        text: explanation,
-        x: rect.left + rect.width / 2,
-        y: rect.top - 10 // 向上偏移一点，确保tooltip显示在单词上方
-      });
+  
+  // 清空输入文本
+  const clearInputText = () => {
+    setInputText('')
+    setCorrectedText('')
+    setDiffResult([])
+    setCorrections([])
+  }
+  
+  // 清空历史记录
+  const clearHistory = () => {
+    setHistory([])
+    toast.info('历史记录已清空', {
+      position: "top-right",
+      autoClose: 2000
+    })
+  }
+  
+  // 显示工具提示
+  const showTooltip = (text: string, x: number, y: number) => {
+    // 清除之前的timeout
+    if (tooltipTimeoutRef.current) {
+      clearTimeout(tooltipTimeoutRef.current);
+      tooltipTimeoutRef.current = null;
     }
+    
+    setTooltipText(text);
+    setTooltipX(x);
+    setTooltipY(y);
+    setTooltipVisible(true);
   };
 
-  // 修改为使用React状态隐藏全局提示框
+  // 隐藏工具提示
   const hideTooltip = () => {
-    setTooltip(prev => ({ ...prev, visible: false }));
+    // 不使用延迟，让ResultSection组件控制防抖
+    setTooltipVisible(false);
+  };
+
+  // 组件卸载时清理timeout
+  useEffect(() => {
+    return () => {
+      if (tooltipTimeoutRef.current) {
+        clearTimeout(tooltipTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // 页面过渡动画
+  const pageVariants = {
+    initial: { opacity: 0 },
+    animate: { 
+      opacity: 1,
+      transition: { duration: 0.5 }
+    },
+    exit: { opacity: 0 }
   };
 
   return (
-    <div className={`app-container ${theme}`}>
-      {/* 显示庆祝效果 */}
-      {showConfetti && (
-        <Confetti
-          width={window.innerWidth}
-          height={window.innerHeight}
-          recycle={false}
-          numberOfPieces={200}
-        />
-      )}
-      
-      {/* 头部导航区 */}
+    <div className="app-container">
       <Header 
         theme={theme} 
         toggleTheme={toggleTheme} 
-        setShowHistory={setShowHistory}
-        setShowSavedRules={setShowSavedRules}
+        showHistory={() => setShowHistory(true)}
+        showSavedRules={() => setShowSavedRules(true)}
       />
-
-      <main className="main-content">
+      
+      <motion.main 
+        className="main-content"
+        variants={pageVariants}
+        initial="initial"
+        animate="animate"
+        exit="exit"
+      >
         <div className="container">
-          <div className="hero-section">
-            <h1 className="main-title">
-              <span className="gradient-text">JustSay</span>
-              <span className="title-divider">|</span>
-              <span className="subtitle-text">英文语法优化助手</span>
-            </h1>
-            <p className="hero-description">
-              输入英文文本，获取语法修正和学习建议。让我们帮助你提升英语写作水平！
-            </p>
-          </div>
+          <AnimatePresence mode="wait">
+            {showHeroSection ? (
+              <motion.div
+                key="hero"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                <HeroSection onGetStarted={handleGetStarted} />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="content"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.5 }}
+                className="space-y-8"
+              >
+                <EnhancedInputSection
+                  inputText={inputText}
+                  setInputText={setInputText}
+                  handleOptimize={handleOptimize}
+                  isLoading={isLoading}
+                  useExampleText={useExampleText}
+                  exampleText={exampleText}
+                />
+                
+                {correctedText && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                  >
+                    <ResultSection 
+                      original={inputText}
+                      corrected={correctedText}
+                      diffResult={diffResult}
+                      showTooltip={showTooltip}
+                      hideTooltip={hideTooltip}
+                    />
+                    
+                    <CorrectionsTable 
+                      corrections={corrections} 
+                      saveRule={saveRule}
+                    />
+                    
+                    <Suspense fallback={<LoadingFallback />}>
+                      <LearningSection 
+                        savedRules={savedRules} 
+                        removeRule={removeRule}
+                        showSavedRules={showSavedRules}
+                      />
+                    </Suspense>
+                  </motion.div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
           
-          <InputSection 
-            inputText={inputText}
-            setInputText={setInputText}
-            isLoading={isLoading}
-            handleOptimize={handleOptimize}
-            useExampleText={useExampleText}
-          />
-          
-          {/* 显示结果区域 */}
-          {correctedText && (
-            <>
-              <ResultSection 
-                diffResult={diffResult}
-                showTooltip={showTooltip}
-                hideTooltip={hideTooltip}
-              />
-              
-              <CorrectionsTable corrections={corrections} />
-              
-              <LearningSection corrections={corrections} />
-            </>
-          )}
+          {showConfetti && <Confetti numberOfPieces={150} recycle={false} />}
         </div>
-      </main>
+      </motion.main>
       
       <Footer />
       
-      {/* 历史记录和保存规则面板 */}
-      <HistoryPanel
-        showHistory={showHistory}
-        setShowHistory={setShowHistory}
-        showSavedRules={showSavedRules}
-        setShowSavedRules={setShowSavedRules}
-        history={history}
-        savedRules={savedRules}
-        loadFromHistory={loadFromHistory}
-        removeRule={removeRule}
-      />
-      
-      {/* 全局提示框 */}
       <Tooltip 
-        visible={tooltip.visible}
-        text={tooltip.text}
-        x={tooltip.x}
-        y={tooltip.y}
+        visible={tooltipVisible} 
+        text={tooltipText} 
+        x={tooltipX} 
+        y={tooltipY} 
       />
       
-      {/* 通知提示 */}
+      <AnimatePresence>
+        {showHistory && (
+          <HistoryPanel 
+            history={history}
+            loadFromHistory={loadFromHistory}
+            clearHistory={clearHistory}
+            onClose={() => setShowHistory(false)}
+          />
+        )}
+      </AnimatePresence>
+      
       <ToastContainer />
     </div>
   )

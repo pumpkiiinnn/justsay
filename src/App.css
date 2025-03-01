@@ -50,6 +50,10 @@ body {
   --color-error: #ef4444;
   --color-info: #3b82f6;
   
+  --color-primary-rgb: 82, 119, 247;
+  --color-success-rgb: 16, 185, 129;
+  --color-error-rgb: 239, 68, 68;
+  
   --color-bg-base: #f8fafc;
   --color-bg-card: #ffffff;
   --color-bg-input: #ffffff;
@@ -83,6 +87,10 @@ body {
   --color-warning: #fbbf24;
   --color-error: #f87171;
   --color-info: #60a5fa;
+  
+  --color-primary-rgb: 124, 144, 247;
+  --color-success-rgb: 52, 211, 153;
+  --color-error-rgb: 248, 113, 113;
   
   --color-bg-base: #0f172a;
   --color-bg-card: #1e293b;
@@ -586,6 +594,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
+  text-decoration: none; /* 确保没有下划线 */
 }
 
 .error-indicator,
@@ -1728,4 +1737,41 @@ body {
   .home-link {
     gap: 0.5rem;
   }
+}
+
+/* 差异视图样式 */
+.added {
+  color: var(--color-success);
+  background-color: rgba(var(--color-success-rgb), 0.1);
+  border-radius: 0.25rem;
+  padding: 0.125rem 0.25rem;
+  margin: 0 0.125rem;
+  cursor: help;
+  text-decoration: none;
+  position: relative;
+  z-index: 5;
+  transition: background-color 0.2s ease;
+  display: inline-block; /* 确保元素是块级的，更容易定位 */
+}
+
+.removed {
+  color: var(--color-error);
+  background-color: rgba(var(--color-error-rgb), 0.1);
+  border-radius: 0.25rem;
+  padding: 0.125rem 0.25rem;
+  margin: 0 0.125rem;
+  cursor: help;
+  text-decoration: line-through;
+  position: relative;
+  z-index: 5;
+  transition: background-color 0.2s ease;
+  display: inline-block; /* 确保元素是块级的，更容易定位 */
+}
+
+.added:hover {
+  background-color: rgba(var(--color-success-rgb), 0.2);
+}
+
+.removed:hover {
+  background-color: rgba(var(--color-error-rgb), 0.2);
 }

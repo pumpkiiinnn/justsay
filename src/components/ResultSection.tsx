@@ -1,6 +1,5 @@
-import { FC } from 'react';
+import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { FiCheckCircle } from 'react-icons/fi';
 
 interface DiffPart {
   value: string;
@@ -10,108 +9,164 @@ interface DiffPart {
 }
 
 interface ResultSectionProps {
+  original: string;
+  corrected: string;
   diffResult: DiffPart[];
-  showTooltip: (event: React.MouseEvent<HTMLSpanElement>) => void;
+  showTooltip: (text: string, x: number, y: number) => void;
   hideTooltip: () => void;
 }
 
-const ResultSection: FC<ResultSectionProps> = ({ diffResult, showTooltip, hideTooltip }) => {
-  // 动画变体
+const ResultSection = ({ 
+  original, 
+  corrected, 
+  diffResult, 
+  showTooltip, 
+  hideTooltip 
+}: ResultSectionProps) => {
+  // 存储当前激活的提示项索引
+  const [activeTooltipIndex, setActiveTooltipIndex] = useState<number | null>(null);
+  // 使用防抖计时器
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // 跟踪鼠标是否在元素上
+  const isHoveringRef = useRef<boolean>(false);
+
+  // 处理鼠标进入
+  const handleMouseEnter = (e: React.MouseEvent, explanation: string, index: number) => {
+    isHoveringRef.current = true;
+    
+    // 清除之前的计时器
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+    
+    // 如果是新的索引，立即显示tooltip
+    if (activeTooltipIndex !== index) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      // 调整y位置，确保tooltip显示在元素上方足够距离
+      const tooltipY = rect.top - 15;
+      showTooltip(explanation, rect.left + rect.width / 2, tooltipY);
+      setActiveTooltipIndex(index);
+    }
+  };
+
+  // 处理鼠标离开
+  const handleMouseLeave = () => {
+    isHoveringRef.current = false;
+    
+    // 使用延迟隐藏tooltip，防止闪烁
+    debounceTimerRef.current = setTimeout(() => {
+      if (!isHoveringRef.current) {
+        hideTooltip();
+        setActiveTooltipIndex(null);
+      }
+    }, 300);
+  };
+
+  // 渲染差异部分
+  const renderDiff = () => {
+    return diffResult.map((part, index) => {
+      const className = part.added 
+        ? 'added' 
+        : part.removed 
+          ? 'removed' 
+          : '';
+      
+      if (part.explanation && (part.added || part.removed)) {
+        return (
+          <span 
+            key={index} 
+            className={className}
+            onMouseEnter={(e) => handleMouseEnter(e, part.explanation || '', index)}
+            onMouseLeave={handleMouseLeave}
+          >
+            {part.value}
+          </span>
+        );
+      } else {
+        return (
+          <span key={index} className={className}>
+            {part.value}
+          </span>
+        );
+      }
+    });
+  };
+  
   const containerVariants = {
     hidden: { opacity: 0, y: 20 },
-    visible: { 
-      opacity: 1, 
+    visible: {
+      opacity: 1,
       y: 0,
-      transition: { 
-        duration: 0.5,
-        when: "beforeChildren",
-        staggerChildren: 0.1
+      transition: {
+        type: "spring",
+        stiffness: 100,
+        damping: 15,
+        staggerChildren: 0.2
+      }
+    }
+  };
+  
+  const itemVariants = {
+    hidden: { opacity: 0, y: 10 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        type: "spring",
+        stiffness: 100,
+        damping: 15
       }
     }
   };
 
-  const itemVariants = {
-    hidden: { opacity: 0, y: 10 },
-    visible: { opacity: 1, y: 0 }
-  };
-
   return (
     <motion.div 
-      className="result-section"
+      className="result-section mt-8"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
     >
       <motion.div 
-        className="card result-card"
-        transition={{ duration: 0.3 }}
+        className="bg-base-100/90 backdrop-blur-md rounded-3xl shadow-lg p-6 md:p-8 border border-base-300/50"
+        variants={containerVariants}
       >
-        <div className="card-header">
-          <h2 className="card-title">
-            <FiCheckCircle className="section-icon success-icon" />
-            优化结果
-          </h2>
-        </div>
-        <motion.div 
-          className="card-body"
+        <motion.h2 
+          className="text-2xl font-bold mb-6 text-base-content"
           variants={itemVariants}
         >
-          <div className="result-text">
-            {diffResult.map((part, index) => {
-              if (part.removed) {
-                return (
-                  <motion.span 
-                    key={index} 
-                    className="text-error"
-                    data-explanation={part.explanation || ''}
-                    onMouseEnter={showTooltip}
-                    onMouseLeave={hideTooltip}
-                    initial={{ backgroundColor: 'rgba(239, 68, 68, 0.3)' }}
-                    animate={{ backgroundColor: 'rgba(239, 68, 68, 0.1)' }}
-                    transition={{ duration: 1, repeat: Infinity, repeatType: 'reverse' }}
-                  >
-                    {part.value}
-                    {part.explanation && (
-                      <motion.span 
-                        className="error-indicator"
-                        initial={{ scale: 0.8 }}
-                        animate={{ scale: 1 }}
-                        transition={{ duration: 0.5, delay: 0.2 }}
-                      >
-                        ?
-                      </motion.span>
-                    )}
-                  </motion.span>
-                );
-              } else if (part.added) {
-                return (
-                  <motion.span 
-                    key={index} 
-                    className="text-success"
-                    data-explanation={part.explanation || ''}
-                    onMouseEnter={showTooltip}
-                    onMouseLeave={hideTooltip}
-                    initial={{ backgroundColor: 'rgba(16, 185, 129, 0.3)' }}
-                    animate={{ backgroundColor: 'rgba(16, 185, 129, 0.1)' }}
-                    transition={{ duration: 1, repeat: Infinity, repeatType: 'reverse' }}
-                  >
-                    {part.value}
-                    {part.explanation && (
-                      <motion.span 
-                        className="success-indicator"
-                        initial={{ scale: 0.8 }}
-                        animate={{ scale: 1 }}
-                        transition={{ duration: 0.5, delay: 0.2 }}
-                      >
-                        ✓
-                      </motion.span>
-                    )}
-                  </motion.span>
-                );
-              } else {
-                return <span key={index}>{part.value}</span>;
-              }
-            })}
+          优化结果
+        </motion.h2>
+        
+        <div className="grid md:grid-cols-2 gap-6">
+          <motion.div 
+            className="original p-4 bg-base-200/50 rounded-xl border border-base-300/50"
+            variants={itemVariants}
+          >
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-base-content-light mb-2">原始文本</h3>
+            <div className="whitespace-pre-wrap break-words text-base-content">
+              {original}
+            </div>
+          </motion.div>
+          
+          <motion.div 
+            className="corrected p-4 bg-primary/5 rounded-xl border border-primary/20"
+            variants={itemVariants}
+          >
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-primary mb-2">优化文本</h3>
+            <div className="whitespace-pre-wrap break-words text-base-content">
+              {corrected}
+            </div>
+          </motion.div>
+        </div>
+        
+        <motion.div 
+          className="diff-view mt-6 p-4 bg-base-200/50 rounded-xl border border-base-300/50"
+          variants={itemVariants}
+        >
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-base-content-light mb-2">对比视图 <span className="text-xs font-normal normal-case ml-2">(鼠标悬停在修改处查看详情)</span></h3>
+          <div className="whitespace-pre-wrap break-words text-base-content">
+            {renderDiff()}
           </div>
         </motion.div>
       </motion.div>
